@@ -1,12 +1,11 @@
 // main.ts
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser"
+import bodyParser from "body-parser";
 
-import { createExpressEndpoints, initServer } from '@ts-rest/express';
-import { contract } from './contract';
-import { getReservation } from "./reservation";
-
+import { createExpressEndpoints, initServer } from "@ts-rest/express";
+import { contract } from "./contract";
+import { getReservation } from "../MEWS_client/reservation";
 
 const app = express();
 
@@ -17,16 +16,17 @@ app.use(bodyParser.json());
 const s = initServer();
 
 const router = s.router(contract, {
-  getReservationbyID: async ({ params: { id } }) => {
-    const post = await getReservation(id)
+  defaultapi: async () => {
+    const post = "Application is running";
 
     return {
       status: 200,
       body: post,
     };
   },
-  get: () => {
-    const post = 'Application is running'
+  getReservationbyID: async ({ params: { id } }) => {
+    const post = await getReservation(id);
+
     return {
       status: 200,
       body: post,
