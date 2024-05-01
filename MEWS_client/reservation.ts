@@ -36,24 +36,12 @@ type resp_format = ClientInferResponseBody<
   200
 >;
 
-export async function getReservation(id: any) {
+export async function getReservation(body) {
   const resp = await client.getReservations({
-    body: {
-      ClientToken:
-        "E0D439EE522F44368DC78E1BFB03710C-D24FB11DBE31D4621C4817E028D9E1D",
-      AccessToken:
-        "C66EF7B239D24632943D115EDE9CB810-EA00F8FD8294692C940F6B5A8F9453D",
-      Client: "Sample Client 1.0.0",
-      Limitation: {
-        Count: 10,
-      },
-      StartUtc: "2023-06-06",
-      EndUtc: "2023-06-10",
-    },
+    body: body,
   });
-  // console.log("🚀 ~ getReservation ~ resp:", resp.body);
   const dbFormat = await convertRespToDBFormat(resp.body);
-  return { id: id, value: dbFormat };
+  return dbFormat ;
 }
 
 async function getRates(rateID, startDate, endDate) {
@@ -69,17 +57,12 @@ async function getRates(rateID, startDate, endDate) {
       EndUtc: endDate,
     },
   });
-  console.log("🚀 ~ getRates ~ resp:", resp);
-  const sum: number = resp.body["BasePrices"].reduce(
-    (acc, curr) => acc + curr,
-    0
-  );
-  return sum;
+  return resp.body;
 }
 
 async function convertRespToDBFormat(data: resp_format) {
-  let respReservations = data["Reservations"];
-  let status_lookup = [
+  const respReservations = data["Reservations"];
+  const status_lookup = [
     "Enquired",
     "Requested",
     "Optional",
@@ -89,17 +72,23 @@ async function convertRespToDBFormat(data: resp_format) {
     "Canceled",
   ];
 
-  let reservations: z.infer<typeof reservations_db_format> = await Promise.all(
+  const reservations: z.infer<typeof reservations_db_format> = await Promise.all(
     respReservations.map(async (ele) => {
-      let customer = data.Customers.find((cus) => cus.Id == ele.CustomerId);
-      let res = await {
-        id: ele.Id,
+      const customer = data.Customers.find((cus) => cus.Id == ele.CustomerId);
+      const rateDetails = await getRates(ele.RateId, ele.StartUtc, ele.EndUtc);
+      const detailedRoomRates = rateDetails["BasePrices"].map((price, idx) => {
+        var obj = {};
+        obj[rateDetails["TimeUnitStartsUtc"][idx]] = price;
+        return obj;
+      });
+      const res = await {
+        id: "",
         createdAt: new Date(ele.CreatedUtc),
         valid_from: new Date(ele.StartUtc),
         valid_to: ele.EndUtc ? new Date(ele.EndUtc) : null,
         hotelId: "",
-        providerReservationId: "z.string()",
-        providerSubReservationId: "z.string()",
+        providerReservationId: ele.Id,
+        providerSubReservationId: "",
         reservationDateCreated: new Date(ele.CreatedUtc),
         reservationDateCanceled: ele.CancelledUtc
           ? new Date(ele.CancelledUtc)
@@ -110,15 +99,18 @@ async function convertRespToDBFormat(data: resp_format) {
           : customer.Address
           ? customer.Address.CountryCode
           : null,
-        sourceName: null,
+        sourceName: ele.TravelAgencyId, //booking redirects
         checkInDate: new Date(ele.StartUtc),
         checkOutDate: new Date(ele.EndUtc),
         roomTypeId: ele.RequestedCategoryId,
         rateId: ele.RateId,
         adults: ele.AdultCount,
         children: ele.ChildCount,
-        totalRate: await getRates(ele.RateId, ele.StartUtc, ele.EndUtc),
-        detailedRoomRates: null,
+        totalRate: rateDetails["BasePrices"].reduce(
+          (acc, curr) => acc + curr,
+          0
+        ),
+        detailedRoomRates: detailedRoomRates, //detailed room rates by day
         reservationDateModified: new Date(ele.UpdatedUtc),
         roomCount: 1,
         changedAt: new Date(ele.UpdatedUtc),

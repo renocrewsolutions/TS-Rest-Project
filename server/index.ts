@@ -24,8 +24,20 @@ const router = s.router(contract, {
       body: post,
     };
   },
-  getReservationbyID: async ({ params: { id } }) => {
-    const post = await getReservation(id);
+  getReservationbyID: async ({}) => {
+    const obj = {
+      ClientToken:
+        "E0D439EE522F44368DC78E1BFB03710C-D24FB11DBE31D4621C4817E028D9E1D",
+      AccessToken:
+        "C66EF7B239D24632943D115EDE9CB810-EA00F8FD8294692C940F6B5A8F9453D",
+      Client: "Sample Client 1.0.0",
+      Limitation: {
+        Count: 10,
+      },
+      StartUtc: "2023-06-06",
+      EndUtc: "2023-06-10",
+    }
+    const post = await getReservation(obj);
 
     return {
       status: 200,

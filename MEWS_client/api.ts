@@ -33,6 +33,7 @@ const reservationFromApi = z.object({
   EndUtc: z.string().nullable().optional(),
   Id: z.string().nullable().optional(),
   BookerId: z.string().nullable().optional(),
+  TravelAgencyId: z.string().nullable().optional(),
   State: z.string().nullable().optional(),
   Origin: z.string().nullable().optional(),
   CreatedUtc: z.string().nullable().optional(),
@@ -99,6 +100,7 @@ export const contract = c.router({
     responses: {
       200: z.object({
         Currency: z.string(),
+        TimeUnitStartsUtc: z.array(z.string()),
         BasePrices: z.array(z.number()),
       }),
     },

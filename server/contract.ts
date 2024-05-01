@@ -5,21 +5,12 @@ import { z } from "zod";
 
 const c = initContract();
 
-const PostSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  body: z.object({
-    id: z.string(),
-    value: z.any(),
-  }),
-});
-
 export const contract = c.router({
   getReservationbyID: {
     method: "GET",
-    path: `/res/:id`,
+    path: `/getReservations`,
     responses: {
-      200: PostSchema.nullable(),
+      200: z.any(),
     },
     summary: "Get a post by id",
   },
@@ -27,7 +18,7 @@ export const contract = c.router({
     method: "GET",
     path: `/`,
     responses: {
-      200: z.string()
+      200: z.string(),
     },
     summary: "Get a post by id",
   },
