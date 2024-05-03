@@ -35,27 +35,39 @@ type resp_format = ClientInferResponseBody<
   typeof contract.getReservations,
   200
 >;
+export async function getReservation(body, cursor?) {
+  let reservationArr = []; // Initialize the reservation array within the function scope
 
-export async function getReservation(body) {
-  const resp = await client.getReservations({
-    body: body,
-  });
-  const dbFormat = await convertRespToDBFormat(resp.body);
-  return dbFormat ;
+  async function fetchReservations(body, cursor) {
+    if (reservationArr.length === 0 || cursor) {
+      if (cursor) {
+        body["Limitation"] = {
+          Cursor: cursor,
+        };
+      }
+      const resp = await client.getReservations({
+        body: contract.getReservations.body.parse(body),
+      });
+
+      reservationArr.push(...(await convertRespToDBFormat(resp.body)));
+
+      // Recursively fetch reservations with the new cursor
+      await fetchReservations(body, resp.body["Cursor"]);
+    }
+  }
+
+  await fetchReservations(body, cursor);
+  return reservationArr;
 }
+
 
 async function getRates(rateID, startDate, endDate) {
   const resp = await client.getRatePrice({
-    body: {
-      ClientToken:
-        "E0D439EE522F44368DC78E1BFB03710C-D24FB11DBE31D4621C4817E028D9E1D",
-      AccessToken:
-        "C66EF7B239D24632943D115EDE9CB810-EA00F8FD8294692C940F6B5A8F9453D",
-      Client: "Sample Client 1.0.0",
+    body: contract.getRatePrice.body.parse({
       RateId: rateID,
       StartUtc: startDate,
       EndUtc: endDate,
-    },
+    }),
   });
   return resp.body;
 }
@@ -72,52 +84,59 @@ async function convertRespToDBFormat(data: resp_format) {
     "Canceled",
   ];
 
-  const reservations: z.infer<typeof reservations_db_format> = await Promise.all(
-    respReservations.map(async (ele) => {
-      const customer = data.Customers.find((cus) => cus.Id == ele.CustomerId);
-      const rateDetails = await getRates(ele.RateId, ele.StartUtc, ele.EndUtc);
-      const detailedRoomRates = rateDetails["BasePrices"].map((price, idx) => {
-        var obj = {};
-        obj[rateDetails["TimeUnitStartsUtc"][idx]] = price;
-        return obj;
-      });
-      const res = await {
-        id: "",
-        createdAt: new Date(ele.CreatedUtc),
-        valid_from: new Date(ele.StartUtc),
-        valid_to: ele.EndUtc ? new Date(ele.EndUtc) : null,
-        hotelId: "",
-        providerReservationId: ele.Id,
-        providerSubReservationId: "",
-        reservationDateCreated: new Date(ele.CreatedUtc),
-        reservationDateCanceled: ele.CancelledUtc
-          ? new Date(ele.CancelledUtc)
-          : null,
-        status: ele.State,
-        guestCountry: customer.NationalityCode
-          ? customer.NationalityCode
-          : customer.Address
-          ? customer.Address.CountryCode
-          : null,
-        sourceName: ele.TravelAgencyId, //booking redirects
-        checkInDate: new Date(ele.StartUtc),
-        checkOutDate: new Date(ele.EndUtc),
-        roomTypeId: ele.RequestedCategoryId,
-        rateId: ele.RateId,
-        adults: ele.AdultCount,
-        children: ele.ChildCount,
-        totalRate: rateDetails["BasePrices"].reduce(
-          (acc, curr) => acc + curr,
-          0
-        ),
-        detailedRoomRates: detailedRoomRates, //detailed room rates by day
-        reservationDateModified: new Date(ele.UpdatedUtc),
-        roomCount: 1,
-        changedAt: new Date(ele.UpdatedUtc),
-      };
-      return res;
-    })
-  );
+  const reservations: z.infer<typeof reservations_db_format> =
+    await Promise.all(
+      respReservations.map(async (ele) => {
+        const customer = data.Customers.find((cus) => cus.Id == ele.CustomerId);
+        const rateDetails = await getRates(
+          ele.RateId,
+          ele.StartUtc,
+          ele.EndUtc
+        );
+        const detailedRoomRates = rateDetails["BasePrices"].map(
+          (price, idx) => {
+            var obj = {};
+            obj[rateDetails["TimeUnitStartsUtc"][idx]] = price;
+            return obj;
+          }
+        );
+        const res = await {
+          id: "",
+          createdAt: new Date(ele.CreatedUtc),
+          valid_from: new Date(ele.StartUtc),
+          valid_to: ele.EndUtc ? new Date(ele.EndUtc) : null,
+          hotelId: "",
+          providerReservationId: ele.Id,
+          providerSubReservationId: "",
+          reservationDateCreated: new Date(ele.CreatedUtc),
+          reservationDateCanceled: ele.CancelledUtc
+            ? new Date(ele.CancelledUtc)
+            : null,
+          status: ele.State,
+          guestCountry: customer.NationalityCode
+            ? customer.NationalityCode
+            : customer.Address
+            ? customer.Address.CountryCode
+            : null,
+          sourceName: ele.TravelAgencyId, //booking redirects
+          checkInDate: new Date(ele.StartUtc),
+          checkOutDate: new Date(ele.EndUtc),
+          roomTypeId: ele.RequestedCategoryId,
+          rateId: ele.RateId,
+          adults: ele.AdultCount,
+          children: ele.ChildCount,
+          totalRate: rateDetails["BasePrices"].reduce(
+            (acc, curr) => acc + curr,
+            0
+          ),
+          detailedRoomRates: detailedRoomRates, //detailed room rates by day
+          reservationDateModified: new Date(ele.UpdatedUtc),
+          roomCount: 1,
+          changedAt: new Date(ele.UpdatedUtc),
+        };
+        return res;
+      })
+    );
 
   return reservations;
 }

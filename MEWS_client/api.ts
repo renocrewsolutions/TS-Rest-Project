@@ -73,10 +73,14 @@ export const contract = c.router({
           EndUtc: z.string(),
         })
         .optional(),
-      Limitation: z.object({
-        Cursor: z.string().optional(),
-        Count: z.number().default(10),
-      }),
+      Limitation: z
+        .object({
+          Cursor: z.string().optional(),
+          Count: z.number().default(1000),
+        })
+        .default({
+          Count: 1000,
+        }),
     }),
     responses: {
       200: z.object({
@@ -90,9 +94,9 @@ export const contract = c.router({
     method: "POST",
     path: "/rates/getPricing",
     body: z.object({
-      ClientToken: z.string(),
-      AccessToken: z.string(),
-      Client: z.string(),
+      ClientToken: z.string().default(env.clientToken),
+      AccessToken: z.string().default(env.accessToken),
+      Client: z.string().default(env.clientName),
       RateId: z.string(),
       StartUtc: z.string(),
       EndUtc: z.string(),
