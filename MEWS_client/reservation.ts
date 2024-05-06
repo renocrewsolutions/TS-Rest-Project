@@ -1,7 +1,7 @@
-import axios from "axios";
 import * as z from "zod";
 import type { ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
+import { getRatePrice } from "./rates";
 
 const reservations_db_format = z.array(
   z.object({
@@ -60,35 +60,23 @@ export async function getReservation(body, cursor?) {
   return reservationArr;
 }
 
-
-async function getRates(rateID, startDate, endDate) {
-  const resp = await client.getRatePrice({
-    body: contract.getRatePrice.body.parse({
-      RateId: rateID,
-      StartUtc: startDate,
-      EndUtc: endDate,
-    }),
-  });
-  return resp.body;
-}
-
 async function convertRespToDBFormat(data: resp_format) {
   const respReservations = data["Reservations"];
-  const status_lookup = [
-    "Enquired",
-    "Requested",
-    "Optional",
-    "Confirmed",
-    "Started",
-    "Processed",
-    "Canceled",
-  ];
+  const status_lookup = {
+    Enquired: "not_confirmed",
+    Requested: "confirmed",
+    Optional: "not_confirmed",
+    Confirmed: "confirmed",
+    Started: "checked_in",
+    Processed: "checked_out",
+    Canceled: "canceled",
+  };
 
   const reservations: z.infer<typeof reservations_db_format> =
     await Promise.all(
       respReservations.map(async (ele) => {
         const customer = data.Customers.find((cus) => cus.Id == ele.CustomerId);
-        const rateDetails = await getRates(
+        const rateDetails = await getRatePrice(
           ele.RateId,
           ele.StartUtc,
           ele.EndUtc
@@ -112,7 +100,7 @@ async function convertRespToDBFormat(data: resp_format) {
           reservationDateCanceled: ele.CancelledUtc
             ? new Date(ele.CancelledUtc)
             : null,
-          status: ele.State,
+          status: status_lookup[ele.State],
           guestCountry: customer.NationalityCode
             ? customer.NationalityCode
             : customer.Address

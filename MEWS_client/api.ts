@@ -44,7 +44,25 @@ const reservationFromApi = z.object({
   AdultCount: z.number().optional(),
   ChildCount: z.number().optional(),
 });
-
+const ratesFromApi = z.object({
+  Id: z.string().nullable().optional(),
+  GroupId: z.string().nullable().optional(),
+  ServiceId: z.string().nullable().optional(),
+  BaseRateId: z.string().nullable().optional(),
+  BusinessSegmentId: z.string().nullable().optional(),
+  IsActive: z.boolean().optional(),
+  IsEnabled: z.boolean().optional(),
+  IsPublic: z.boolean().optional(),
+  Type: z.string().nullable().optional(),
+  Name: z.string().nullable().optional(),
+  ShortName: z.string().nullable().optional(),
+  UpdatedUtc: z.string().nullable().optional(),
+  ExternalIdentifier: z.string().nullable().optional(),
+  Options: z.object({
+    HidePriceFromGuest: z.boolean().optional(),
+    IsBonusPointsEligible: z.boolean().optional(),
+  }),
+});
 const c = initContract();
 export const contract = c.router({
   getReservations: {
@@ -107,6 +125,50 @@ export const contract = c.router({
         TimeUnitStartsUtc: z.array(z.string()),
         BasePrices: z.array(z.number()),
       }),
+    },
+  },
+  getAllRates: {
+    method: "POST",
+    path: "/rates/getAll",
+    body: z.object({
+      ClientToken: z.string().default(env.clientToken),
+      AccessToken: z.string().default(env.accessToken),
+      Client: z.string().default(env.clientName),
+      Limitation: z
+        .object({
+          Cursor: z.string().optional(),
+          Count: z.number().default(1000),
+        })
+        .default({
+          Count: 1000,
+        }),
+      EnterpriseIds: z.array(z.string()).optional(),
+    }),
+    responses: {
+      200: z.object({
+        Rates: z.array(ratesFromApi),
+        Cursor: z.string().nullable().optional(),
+      }),
+    },
+  },
+  updateRates: {
+    method: "POST",
+    path: "/rates/updatePrice",
+    body: z.object({
+      ClientToken: z.string().default(env.clientToken),
+      AccessToken: z.string().default(env.accessToken),
+      Client: z.string().default(env.clientName),
+      RateId: z.string(),
+      PriceUpdates: z.array(
+        z.object({
+          StartUtc: z.string(),
+          EndUtc: z.string(),
+          Value: z.number(),
+        })
+      ),
+    }),
+    responses: {
+      200: z.object({}),
     },
   },
 });
