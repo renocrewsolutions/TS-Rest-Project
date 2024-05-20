@@ -6,6 +6,8 @@ import bodyParser from "body-parser";
 import { createExpressEndpoints, initServer } from "@ts-rest/express";
 import { contract } from "./contract";
 import { getReservation } from "../MEWS_client/reservation";
+import { getAllRates, updateRates } from "../MEWS_client/rates";
+import { getAllRoomTypes } from "../MEWS_client/roomTypes";
 
 const app = express();
 
@@ -24,12 +26,56 @@ const router = s.router(contract, {
       body: post,
     };
   },
-  getReservationbyID: async ({}) => {
+  getReservations: async ({}) => {
     const obj = {
       StartUtc: "2023-06-06",
       EndUtc: "2023-06-10",
-    }
+      EnterpriseIds: ["c65ea6e9-2340-42f4-9136-ab3a00b6da22"],
+    };
     const post = await getReservation(obj);
+
+    return {
+      status: 200,
+      body: post,
+    };
+  },
+  getRoomTypes: async ({}) => {
+    const obj = {
+      StartUtc: "2023-06-06",
+      EndUtc: "2023-06-10",
+      EnterpriseIds: ["c65ea6e9-2340-42f4-9136-ab3a00b6da22"],
+    };
+    const post = await getAllRoomTypes(obj);
+
+    return {
+      status: 200,
+      body: post,
+    };
+  },
+  getRates: async ({}) => {
+    const obj = {
+      StartUtc: "2023-06-06",
+      EndUtc: "2023-06-10",
+    };
+    const post = await getAllRates(obj);
+
+    return {
+      status: 200,
+      body: post,
+    };
+  },
+  updateRates: async ({}) => {
+    const obj = {
+      RateId: "fa2e29cd-ea49-481d-a3ad-b15b011952ab",
+      PriceUpdates: [
+        {
+          StartUtc: "2024-05-25T00:00:00Z",
+          EndUtc: "2024-05-28T00:00:00Z",
+          Value: 123,
+        },
+      ],
+    };
+    const post = await updateRates(obj);
 
     return {
       status: 200,

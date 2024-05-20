@@ -1,7 +1,10 @@
 import * as z from "zod";
 import type { ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
-import { getRatePrice } from "./rates";
+import { getRatePrice, ratePrice_format } from "./rates";
+import { customer_format, getCustomerDetails } from "./customers";
+import { getServiceIdList } from "./services";
+import { ageCategory_format, fetchAgeCategories } from "./ageCategories";
 
 const reservations_db_format = z.array(
   z.object({
@@ -10,7 +13,7 @@ const reservations_db_format = z.array(
     valid_from: z.date(),
     valid_to: z.date().nullish(),
     hotelId: z.string(),
-    providerReservationId: z.string(),
+    providerReservationId: z.string().nullable(),
     providerSubReservationId: z.string(),
     reservationDateCreated: z.date(),
     reservationDateCanceled: z.date().nullish(),
@@ -35,10 +38,16 @@ type resp_format = ClientInferResponseBody<
   typeof contract.getReservations,
   200
 >;
-export async function getReservation(body, cursor?) {
-  let reservationArr = []; // Initialize the reservation array within the function scope
 
-  async function fetchReservations(body, cursor) {
+let serviceList: string[] = [];
+let ageCategoryList: ageCategory_format = [];
+
+export async function getReservation(body: any, cursor?: string) {
+  let reservationArr: z.infer<typeof reservations_db_format> = []; // Initialize the reservation array within the function scope
+  serviceList = await getServiceIdList(JSON.parse(JSON.stringify(body)));
+  ageCategoryList = await fetchAgeCategories({ ServiceIds: serviceList });
+
+  async function fetchReservations(body: any, cursor: string) {
     if (reservationArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -46,23 +55,51 @@ export async function getReservation(body, cursor?) {
         };
       }
       const resp = await client.getReservations({
+        params: {
+          start: body.StartUtc,
+        },
         body: contract.getReservations.body.parse(body),
       });
-
-      reservationArr.push(...(await convertRespToDBFormat(resp.body)));
-
-      // Recursively fetch reservations with the new cursor
-      await fetchReservations(body, resp.body["Cursor"]);
+      if (resp.status == 200) {
+        reservationArr.push(...(await convertRespToDBFormat(resp.body)));
+        // Recursively fetch reservations with the new cursor
+        // await fetchReservations(body, resp.body["Cursor"] as string);
+      }
     }
   }
 
-  await fetchReservations(body, cursor);
+  await fetchReservations(body, cursor as string);
   return reservationArr;
 }
 
-async function convertRespToDBFormat(data: resp_format) {
+function getPersonCountFormCategories(
+  categoryList: resp_format["Reservations"][0]["PersonCounts"]
+) {
+  let obj = {
+    adultCount: 0,
+    childCount: 0,
+  };
+  categoryList.forEach((cat) => {
+    const ageCategory: ageCategory_format[0] = ageCategoryList.find(
+      (age) => age.Id == cat.AgeCategoryId
+    ) as ageCategory_format[0];
+    if (
+      (ageCategory.MinimalAge as number) > 0 &&
+      (ageCategory.MaximalAge as number) >= 18
+    ) {
+      obj.childCount += cat.Count;
+    } else {
+      obj.adultCount += cat.Count;
+    }
+  });
+  return obj;
+}
+
+async function convertRespToDBFormat(
+  data: resp_format
+): Promise<z.infer<typeof reservations_db_format>> {
   const respReservations = data["Reservations"];
-  const status_lookup = {
+  const status_lookup: { [key: string]: string } = {
     Enquired: "not_confirmed",
     Requested: "confirmed",
     Optional: "not_confirmed",
@@ -71,32 +108,49 @@ async function convertRespToDBFormat(data: resp_format) {
     Processed: "checked_out",
     Canceled: "canceled",
   };
+  console.log("🚀 ~ respReservations.map ~ respReservations:", respReservations.length)
 
   const reservations: z.infer<typeof reservations_db_format> =
     await Promise.all(
       respReservations.map(async (ele) => {
-        const customer = data.Customers.find((cus) => cus.Id == ele.CustomerId);
-        const rateDetails = await getRatePrice(
-          ele.RateId,
-          ele.StartUtc,
-          ele.EndUtc
+        console.log("🚀 ~ respReservations.map ~ ele:", ele)
+        const customer: customer_format[0] = await getCustomerDetails({
+          CustomerIds: [ele.AccountId as string],
+        });
+        const rateDetails: ratePrice_format = await getRatePrice(
+          ele.RateId as string,
+          ele.StartUtc as string,
+          ele.EndUtc as string
         );
-        const detailedRoomRates = rateDetails["BasePrices"].map(
-          (price, idx) => {
-            var obj = {};
-            obj[rateDetails["TimeUnitStartsUtc"][idx]] = price;
-            return obj;
-          }
+
+        const arrayOfObjects: { [key: string]: number }[] = rateDetails[
+          "BasePrices"
+        ].map((price: number, idx: number) => {
+          var obj: { [key: string]: number } = {};
+          obj[rateDetails.TimeUnitStartsUtc[idx]] = price;
+          return obj;
+        });
+
+        const detailedRoomRates: Record<string, number> = arrayOfObjects.reduce(
+          (result, currentObject) => {
+            Object.keys(currentObject).forEach((key) => {
+              result[key] = currentObject[key] as number;
+            });
+            return result;
+          },
+          {}
         );
+
+        const personCounts = getPersonCountFormCategories(ele.PersonCounts);
         const res = await {
           id: "",
-          createdAt: new Date(ele.CreatedUtc),
-          valid_from: new Date(ele.StartUtc),
+          createdAt: new Date(ele.CreatedUtc as string),
+          valid_from: new Date(ele.StartUtc as string),
           valid_to: ele.EndUtc ? new Date(ele.EndUtc) : null,
           hotelId: "",
-          providerReservationId: ele.Id,
+          providerReservationId: ele.Id as string,
           providerSubReservationId: "",
-          reservationDateCreated: new Date(ele.CreatedUtc),
+          reservationDateCreated: new Date(ele.CreatedUtc as string),
           reservationDateCanceled: ele.CancelledUtc
             ? new Date(ele.CancelledUtc)
             : null,
@@ -107,20 +161,20 @@ async function convertRespToDBFormat(data: resp_format) {
             ? customer.Address.CountryCode
             : null,
           sourceName: ele.TravelAgencyId, //booking redirects
-          checkInDate: new Date(ele.StartUtc),
-          checkOutDate: new Date(ele.EndUtc),
-          roomTypeId: ele.RequestedCategoryId,
+          checkInDate: new Date(ele.StartUtc as string),
+          checkOutDate: new Date(ele.EndUtc as string),
+          roomTypeId: ele.RequestedResourceCategoryId as string,
           rateId: ele.RateId,
-          adults: ele.AdultCount,
-          children: ele.ChildCount,
+          adults: personCounts.adultCount,
+          children: personCounts.childCount,
           totalRate: rateDetails["BasePrices"].reduce(
-            (acc, curr) => acc + curr,
+            (acc: number, curr: number) => acc + curr,
             0
           ),
           detailedRoomRates: detailedRoomRates, //detailed room rates by day
-          reservationDateModified: new Date(ele.UpdatedUtc),
+          reservationDateModified: new Date(ele.UpdatedUtc as string),
           roomCount: 1,
-          changedAt: new Date(ele.UpdatedUtc),
+          changedAt: new Date(ele.UpdatedUtc as string),
         };
         return res;
       })

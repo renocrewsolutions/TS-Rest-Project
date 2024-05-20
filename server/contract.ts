@@ -6,13 +6,33 @@ import { z } from "zod";
 const c = initContract();
 
 export const contract = c.router({
-  getReservationbyID: {
+  getReservations: {
     method: "GET",
     path: `/getReservations`,
     responses: {
       200: z.any(),
     },
-    summary: "Get a post by id",
+  },
+  getRates: {
+    method: "GET",
+    path: `/getRates`,
+    responses: {
+      200: z.any(),
+    },
+  },
+  updateRates: {
+    method: "GET",
+    path: `/updateRates`,
+    responses: {
+      200: z.any(),
+    },
+  },
+  getRoomTypes: {
+    method: "GET",
+    path: `/getRoomTypes`,
+    responses: {
+      200: z.any(),
+    },
   },
   defaultapi: {
     method: "GET",
