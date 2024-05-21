@@ -21,7 +21,6 @@ export async function getAllRates(body, cursor?: string) {
       const resp = await client.getAllRates({
         body: contract.getAllRates.body.parse(body),
       });
-      console.log("🚀 ~ fetch ~ resp:", resp);
       ratesArr.push(...resp.body["Rates"]);
       await fetchRates(body, resp.body["Cursor"] as string);
     }

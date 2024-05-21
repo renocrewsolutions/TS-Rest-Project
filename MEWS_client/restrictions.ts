@@ -18,7 +18,6 @@ export async function fetchRestrictions(body, cursor?: string) {
       const resp = await client.getRestrictions({
         body: contract.getRestrictions.body.parse(body),
       });
-      console.log("🚀 ~ fetch ~ resp:", resp)
       restrictionsArr.push(...resp.body["Restrictions"]);
       await fetch(body, resp.body["Cursor"] as string);
     }
