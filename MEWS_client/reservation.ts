@@ -69,6 +69,7 @@ export async function getReservation(body: any, cursor?: string) {
   }
 
   await fetchReservations(body, cursor as string);
+  console.log("🚀 ~ getReservation ~ reservationArr:", reservationArr.length)
   return reservationArr;
 }
 
@@ -108,12 +109,9 @@ async function convertRespToDBFormat(
     Processed: "checked_out",
     Canceled: "canceled",
   };
-  console.log("🚀 ~ respReservations.map ~ respReservations:", respReservations.length)
-
   const reservations: z.infer<typeof reservations_db_format> =
     await Promise.all(
       respReservations.map(async (ele) => {
-        console.log("🚀 ~ respReservations.map ~ ele:", ele)
         const customer: customer_format[0] = await getCustomerDetails({
           CustomerIds: [ele.AccountId as string],
         });

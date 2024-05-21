@@ -12,7 +12,6 @@ export async function fetchCustomer(body: {
   const resp = await client.getCustomerDetails({
     body: contract.getCustomerDetails.body.parse(body),
   });
-  console.log("🚀 ~ resp:", resp.body)
   return resp.body["Customers"];
 }
 

@@ -35,7 +35,6 @@ export type resourceCategory_format = ClientInferResponseBody<
 >["ResourceCategories"];
 
 export async function getAllRoomTypes(body, cursor?: string) {
-  console.log("🚀 ~ getAllRoomTypes ~ calles:");
   let roomTypeArr: z.infer<typeof roomTypeRateV2Model>[] = [];
   const serviceList: service_format = await fetchServices(
     JSON.parse(JSON.stringify(body))
@@ -80,15 +79,18 @@ export async function getAllRoomTypes(body, cursor?: string) {
       const restriction = restrictionsArr.find(
         (ele) => ele.Conditions.ResourceCategoryId == resource.Id
       );
-      console.log("🚀 ~ resourcesArr.map ~ restriction:", restriction);
       const rate = restriction
         ? ratesArr.find((ele) => ele.Id == restriction.Conditions.ExactRateId)
         : undefined;
       const rateDetails: ratePrice_format = rate
         ? await getRatePrice(
             rate.Id as string,
-            restriction.Conditions.StartUtc as string,
-            restriction.Conditions.EndUtc as string
+            restriction.Conditions.StartUtc
+              ? (restriction.Conditions.StartUtc as string)
+              : body.StartUtc,
+            restriction.Conditions.EndUtc
+              ? (restriction.Conditions.EndUtc as string)
+              : body.EndUtc
           )
         : undefined;
       const detailedRoomRates: { [key: string]: number }[] = rateDetails
@@ -107,8 +109,9 @@ export async function getAllRoomTypes(body, cursor?: string) {
         roomsAvailable: resource.Capacity, //capacitt
         isDerived: false,
       };
-      return obj
+      return obj;
     })
   );
+  console.log("🚀 ~ getAllRoomTypes ~ roomTypeArr:", roomTypeArr.length);
   return roomTypeArr;
 }

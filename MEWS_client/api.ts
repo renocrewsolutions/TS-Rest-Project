@@ -220,10 +220,10 @@ export const contract = c.router({
       Limitation: z
         .object({
           Cursor: z.string().optional(),
-          Count: z.number().default(10),
+          Count: z.number().default(100),
         })
         .default({
-          Count: 10,
+          Count: 100,
         }),
     }),
     responses: {
