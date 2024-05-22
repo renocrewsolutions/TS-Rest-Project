@@ -83,15 +83,7 @@ export async function getAllRoomTypes(body, cursor?: string) {
         ? ratesArr.find((ele) => ele.Id == restriction.Conditions.ExactRateId)
         : undefined;
       const rateDetails: ratePrice_format = rate
-        ? await getRatePrice(
-            rate.Id as string,
-            restriction.Conditions.StartUtc
-              ? (restriction.Conditions.StartUtc as string)
-              : body.StartUtc,
-            restriction.Conditions.EndUtc
-              ? (restriction.Conditions.EndUtc as string)
-              : body.EndUtc
-          )
+        ? await getRatePrice(rate.Id as string, body.StartUtc, body.EndUtc)
         : undefined;
       const detailedRoomRates: { [key: string]: number }[] = rateDetails
         ? rateDetails["BasePrices"].map((price: number, idx: number) => {
