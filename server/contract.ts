@@ -13,13 +13,7 @@ export const contract = c.router({
       200: z.any(),
     },
   },
-  getRates: {
-    method: "GET",
-    path: `/getRates`,
-    responses: {
-      200: z.any(),
-    },
-  },
+ 
   updateRates: {
     method: "GET",
     path: `/updateRates`,

@@ -1,17 +1,24 @@
-import { ClientInferResponseBody } from "@ts-rest/core";
+import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 export type ratePrice_format = ClientInferResponseBody<
   typeof contract.getRatePrice,
   200
 >;
+
+export type updatRate_body = ClientInferRequest<
+  typeof contract.updateRates
+>["body"];
+
 export type rate_format = ClientInferResponseBody<
   typeof contract.getAllRates,
   200
 >["Rates"];
 
-export async function getAllRates(body, cursor?: string) {
+export type rate_body = ClientInferRequest<typeof contract.getAllRates>["body"];
+
+export async function getAllRates(body: rate_body, cursor?: string) {
   var ratesArr: rate_format = [];
-  async function fetchRates(body, cursor: string) {
+  async function fetchRates(body: rate_body, cursor: string) {
     if (ratesArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -44,7 +51,7 @@ export async function getRatePrice(
   return resp.body as ratePrice_format;
 }
 
-export async function updateRates(body) {
+export async function updateRates(body: updatRate_body) {
   const resp = await client.updateRates({
     body: contract.updateRates.body.parse(body),
   });

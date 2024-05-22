@@ -115,6 +115,30 @@ const roomTypesFromApi = z.object({
 });
 const c = initContract();
 export const contract = c.router({
+  getRoomTypes: {
+    method: "POST",
+    path: "/resourceCategories/getAll",
+    body: z.object({
+      ClientToken: z.string().default(env.clientToken),
+      AccessToken: z.string().default(env.accessToken),
+      Client: z.string().default(env.clientName),
+      ServiceIds: z.array(z.string()).optional(),
+      Limitation: z
+        .object({
+          Cursor: z.string().optional(),
+          Count: z.number().default(100),
+        })
+        .default({
+          Count: 100,
+        }),
+    }),
+    responses: {
+      200: z.object({
+        ResourceCategories: z.array(roomTypesFromApi),
+        Cursor: z.string().nullable(),
+      }),
+    },
+  },
   getReservations: {
     method: "POST",
     path: "/reservations/getAll/:start",
@@ -124,6 +148,8 @@ export const contract = c.router({
       Client: z.string().default(env.clientName),
       EnterpriseIds: z.array(z.string()).optional(),
       ReservationIds: z.array(z.string()).optional(),
+      StartUtc: z.string().optional(),
+      EndUtc: z.string().optional(),
       UpdatedUtc: z
         .object({
           StartUtc: z.string(),
@@ -133,10 +159,10 @@ export const contract = c.router({
       Limitation: z
         .object({
           Cursor: z.string().optional(),
-          Count: z.number().default(10),
+          Count: z.number().default(1000),
         })
         .default({
-          Count: 10,
+          Count: 1000,
         }),
     }),
     responses: {
@@ -181,6 +207,7 @@ export const contract = c.router({
           Count: 1000,
         }),
       EnterpriseIds: z.array(z.string()).optional(),
+      ServiceIds: z.array(z.string()).optional(),
     }),
     responses: {
       200: z.object({
@@ -209,30 +236,7 @@ export const contract = c.router({
       200: z.object({}),
     },
   },
-  getRoomTypes: {
-    method: "POST",
-    path: "/resourceCategories/getAll",
-    body: z.object({
-      ClientToken: z.string().default(env.clientToken),
-      AccessToken: z.string().default(env.accessToken),
-      Client: z.string().default(env.clientName),
-      ServiceIds: z.array(z.string()).optional(),
-      Limitation: z
-        .object({
-          Cursor: z.string().optional(),
-          Count: z.number().default(100),
-        })
-        .default({
-          Count: 100,
-        }),
-    }),
-    responses: {
-      200: z.object({
-        ResourceCategories: z.array(roomTypesFromApi),
-        Cursor: z.string().nullable(),
-      }),
-    },
-  },
+  
   getCustomerDetails: {
     method: "POST",
     path: "/customers/getAll",

@@ -1,4 +1,4 @@
-import { ClientInferResponseBody } from "@ts-rest/core";
+import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 
 export type customer_format = ClientInferResponseBody<
@@ -6,9 +6,10 @@ export type customer_format = ClientInferResponseBody<
   200
 >["Customers"];
 
-export async function fetchCustomer(body: {
-  CustomerIds: string[];
-}): Promise<customer_format> {
+export type customer_body = ClientInferRequest<
+  typeof contract.getCustomerDetails
+>['body'];
+export async function fetchCustomer(body: customer_body): Promise<customer_format> {
   const resp = await client.getCustomerDetails({
     body: contract.getCustomerDetails.body.parse(body),
   });

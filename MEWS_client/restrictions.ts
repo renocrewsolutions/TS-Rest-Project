@@ -1,4 +1,4 @@
-import { ClientInferResponseBody } from "@ts-rest/core";
+import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 
 export type restrictions_format = ClientInferResponseBody<
@@ -6,9 +6,13 @@ export type restrictions_format = ClientInferResponseBody<
   200
 >["Restrictions"];
 
-export async function fetchRestrictions(body, cursor?: string) {
+export type restrictions_body = ClientInferRequest<
+  typeof contract.getRestrictions
+>['body'];
+
+export async function fetchRestrictions(body:restrictions_body, cursor?: string) {
   var restrictionsArr: restrictions_format = [];
-  async function fetch(body, cursor: string) {
+  async function fetch(body:restrictions_body, cursor: string) {
     if (restrictionsArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {

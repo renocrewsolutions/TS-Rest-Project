@@ -1,4 +1,4 @@
-import { ClientInferResponseBody } from "@ts-rest/core";
+import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 
 export type service_format = ClientInferResponseBody<
@@ -6,9 +6,13 @@ export type service_format = ClientInferResponseBody<
   200
 >["Services"];
 
-export async function fetchServices(body, cursor?: string) {
+export type service_body = ClientInferRequest<
+  typeof contract.getServices
+>["body"];
+
+export async function fetchServices(body: service_body, cursor?: string) {
   var serviceArr: service_format = [];
-  async function fetch(body, cursor: string) {
+  async function fetch(body: service_body, cursor: string) {
     if (serviceArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -26,7 +30,7 @@ export async function fetchServices(body, cursor?: string) {
   return serviceArr;
 }
 
-export async function getServiceIdList(body): Promise<string[]> {
+export async function getServiceIdList(body:service_body): Promise<string[]> {
   const services: service_format = await fetchServices(body);
   return services.map((ser) => ser.Id) as string[];
 }

@@ -1,5 +1,5 @@
 import * as z from "zod";
-import type { ClientInferResponseBody } from "@ts-rest/core";
+import type { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 import { getRatePrice, ratePrice_format } from "./rates";
 import { customer_format, getCustomerDetails } from "./customers";
@@ -39,15 +39,19 @@ type resp_format = ClientInferResponseBody<
   200
 >;
 
+export type reservation_body = ClientInferRequest<
+  typeof contract.getReservations
+>['body'];
+
 let serviceList: string[] = [];
 let ageCategoryList: ageCategory_format = [];
 
-export async function getReservation(body: any, cursor?: string) {
+export async function getReservation(body: reservation_body, cursor?: string) {
   let reservationArr: z.infer<typeof reservations_db_format> = []; // Initialize the reservation array within the function scope
   serviceList = await getServiceIdList(JSON.parse(JSON.stringify(body)));
   ageCategoryList = await fetchAgeCategories({ ServiceIds: serviceList });
 
-  async function fetchReservations(body: any, cursor: string) {
+  async function fetchReservations(body: reservation_body, cursor: string) {
     if (reservationArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -56,14 +60,14 @@ export async function getReservation(body: any, cursor?: string) {
       }
       const resp = await client.getReservations({
         params: {
-          start: body.StartUtc,
+          start: body.StartUtc as string,
         },
         body: contract.getReservations.body.parse(body),
       });
       if (resp.status == 200) {
         reservationArr.push(...(await convertRespToDBFormat(resp.body)));
         // Recursively fetch reservations with the new cursor
-        // await fetchReservations(body, resp.body["Cursor"] as string);
+        await fetchReservations(body, resp.body["Cursor"] as string);
       }
     }
   }

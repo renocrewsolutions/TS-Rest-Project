@@ -1,14 +1,21 @@
-import { ClientInferResponseBody } from "@ts-rest/core";
+import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 
 export type ageCategory_format = ClientInferResponseBody<
-typeof contract.getAgeCategories,
-200
+  typeof contract.getAgeCategories,
+  200
 >["AgeCategories"];
 
-export async function fetchAgeCategories(body, cursor?: string) {
+export type ageCategory_body = ClientInferRequest<
+  typeof contract.getAgeCategories
+>["body"];
+
+export async function fetchAgeCategories(
+  body: ageCategory_body,
+  cursor?: string
+) {
   var ageCategoryArr: ageCategory_format = [];
-  async function fetch(body, cursor: string) {
+  async function fetch(body: ageCategory_body, cursor: string) {
     if (ageCategoryArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {

@@ -52,18 +52,6 @@ const router = s.router(contract, {
       body: post,
     };
   },
-  getRates: async ({}) => {
-    const obj = {
-      StartUtc: "2023-06-06",
-      EndUtc: "2023-06-10",
-    };
-    const post = await getAllRates(obj);
-
-    return {
-      status: 200,
-      body: post,
-    };
-  },
   updateRates: async ({}) => {
     const obj = {
       RateId: "fa2e29cd-ea49-481d-a3ad-b15b011952ab",
