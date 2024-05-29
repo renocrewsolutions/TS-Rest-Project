@@ -1,4 +1,4 @@
-import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
+import type { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 
 export type restrictions_format = ClientInferResponseBody<
@@ -12,10 +12,10 @@ export type restrictions_body = ClientInferRequest<
 
 export async function fetchRestrictions(
   body: restrictions_body,
-  cursor: string | null,
+  cursor?: string,
 ) {
-  var restrictionsArr: restrictions_format = [];
-  async function fetch(body: restrictions_body, cursor: string | null) {
+  const restrictionsArr: restrictions_format = [];
+  async function fetch(body: restrictions_body, cursor: string) {
     if (restrictionsArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -27,12 +27,12 @@ export async function fetchRestrictions(
       });
       if (resp.status == 200) {
         restrictionsArr.push(...resp.body["Restrictions"]);
-        await fetch(body, resp.body["Cursor"]);
+        await fetch(body, resp.body["Cursor"] as string);
       } else {
         throw new Error("Unexpected response format");
       }
     }
   }
-  await fetch(body, cursor);
+  await fetch(body, cursor as string);
   return restrictionsArr;
 }

@@ -1,13 +1,16 @@
-import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
+import type { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
-import { fetchServices, service_format } from "./services";
+import type { service_format } from "./services";
+import { fetchServices } from "./services";
+import type {
+  ratePrice_format,
+  rate_format} from "./rates";
 import {
   getAllRates,
-  getRatePrice,
-  ratePrice_format,
-  rate_format,
+  getRatePrice
 } from "./rates";
-import { fetchRestrictions, restrictions_format } from "./restrictions";
+import type { restrictions_format } from "./restrictions";
+import { fetchRestrictions } from "./restrictions";
 import { string, z } from "zod";
 
 const roomTypeRateV2Model = z.object({
@@ -23,7 +26,7 @@ const roomTypeRateV2Model = z.object({
 
       date: z.string(), // yyyy-MM-dd
       rate: z.number(),
-    })
+    }),
   ),
   roomsAvailable: z.number().int().nullish(), //capacitt
   isDerived: z.boolean(),
@@ -45,12 +48,11 @@ interface roomRateRequest_payload {
 }
 export async function getAllRoomTypes(
   body: roomRateRequest_payload,
-  cursor: string | null
+  cursor?: string,
 ) {
   let roomTypeArr: z.infer<typeof roomTypeRateV2Model>[] = [];
   const serviceList: service_format = await fetchServices(
     JSON.parse(JSON.stringify(body)),
-    null
   );
 
   const serviceIdList: string[] = serviceList
@@ -60,22 +62,16 @@ export async function getAllRoomTypes(
       }
     })
     .filter((id) => id !== undefined) as string[];
-  const ratesArr: rate_format = await getAllRates(
-    {
-      ServiceIds: serviceIdList,
-    },
-    null
-  );
+  const ratesArr: rate_format = await getAllRates({
+    ServiceIds: serviceIdList,
+  });
 
-  const restrictionsArr: restrictions_format = await fetchRestrictions(
-    {
-      ServiceIds: serviceIdList,
-    },
-    null
-  );
+  const restrictionsArr: restrictions_format = await fetchRestrictions({
+    ServiceIds: serviceIdList,
+  });
 
-  var resourcesArr: resourceCategory_format = [];
-  async function fetch(body: roomType_body, cursor: string | null) {
+  const resourcesArr: resourceCategory_format = [];
+  async function fetch(body: roomType_body, cursor: string) {
     if (resourcesArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -87,30 +83,32 @@ export async function getAllRoomTypes(
       });
       if (resp.status == 200) {
         resourcesArr.push(
-          ...resp.body["ResourceCategories"].filter((cat) => cat.Type == "Room")
+          ...resp.body["ResourceCategories"].filter(
+            (cat) => cat.Type == "Room",
+          ),
         );
-        // await fetch(body, resp.body["Cursor"]);
+        await fetch(body, resp.body["Cursor"] as string);
       } else {
         throw new Error("Unexpected response format");
       }
     }
   }
-  await fetch({ ServiceIds: serviceIdList }, cursor);
+  await fetch({ ServiceIds: serviceIdList }, cursor as string);
   roomTypeArr = await Promise.all(
     resourcesArr.map(async (resource) => {
       const restriction = restrictionsArr.find(
-        (ele) => ele.Conditions.ResourceCategoryId == resource.Id
+        (ele) => ele.Conditions.ResourceCategoryId == resource.Id,
       );
       const rate = restriction
         ? ratesArr.find((ele) => ele.Id == restriction.Conditions.ExactRateId)
         : undefined;
       const rateDetails: ratePrice_format | undefined = rate
-        ? await getRatePrice(rate.Id, body.StartUtc, body.EndUtc)
+        ? await getRatePrice(rate.Id as string, body.StartUtc, body.EndUtc)
         : undefined;
       const detailedRoomRates: { date: string; rate: number }[] = rateDetails
         ? rateDetails["BasePrices"].map((price: number, idx: number) => {
-            var obj: { date: string; rate: number } = {
-              date: rateDetails.TimeUnitStartsUtc[idx],
+            const obj: { date: string; rate: number } = {
+              date: rateDetails.TimeUnitStartsUtc[idx] as string,
               rate: price,
             };
             return obj;
@@ -118,7 +116,7 @@ export async function getAllRoomTypes(
         : [];
       const obj: z.infer<typeof roomTypeRateV2Model> = {
         id: "",
-        roomTypeId: resource.Id,
+        roomTypeId: resource.Id as string,
         queryDate: new Date(), //today
         rateId: rate ? rate.Id : null,
         rates: detailedRoomRates,
@@ -126,7 +124,7 @@ export async function getAllRoomTypes(
         isDerived: false,
       };
       return obj;
-    })
+    }),
   );
   console.log("🚀 ~ getAllRoomTypes ~ roomTypeArr:", roomTypeArr.length);
   return roomTypeArr;

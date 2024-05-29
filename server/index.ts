@@ -32,7 +32,7 @@ const router = s.router(contract, {
       EndUtc: "2023-06-10",
       EnterpriseIds: ["c65ea6e9-2340-42f4-9136-ab3a00b6da22"],
     };
-    const post = await getReservation(obj);
+    const post = await getReservation(obj, null);
 
     return {
       status: 200,
@@ -45,7 +45,7 @@ const router = s.router(contract, {
       EndUtc: "2023-06-10",
       EnterpriseIds: ["c65ea6e9-2340-42f4-9136-ab3a00b6da22"],
     };
-    const post = await getAllRoomTypes(obj);
+    const post = await getAllRoomTypes(obj, null);
 
     return {
       status: 200,

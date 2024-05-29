@@ -3,18 +3,18 @@ import { z } from "zod";
 import * as env from "./env";
 
 const customerFromApi = z.object({
-  Id: z.string(),
+  Id: z.string().nullable(),
   Title: z.string().nullable(),
   Sex: z.string().nullable(),
   Gender: z.string().nullable(),
   FirstName: z.string().nullable(),
-  LastName: z.string(),
+  LastName: z.string().nullable(),
   NationalityCode: z.string().nullable(),
   LanguageCode: z.string().nullable(),
   Email: z.string().nullable(),
   Phone: z.string().nullable(),
-  CreatedUtc: z.string(),
-  UpdatedUtc: z.string(),
+  CreatedUtc: z.string().nullable(),
+  UpdatedUtc: z.string().nullable(),
   Address: z
     .object({
       City: z.string().nullable(),
@@ -26,23 +26,22 @@ const customerFromApi = z.object({
 });
 
 const reservationFromApi = z.object({
-  RateId: z.string(),
-  RequestedResourceCategoryId: z.string(),
+  RateId: z.string().nullable(),
+  RequestedResourceCategoryId: z.string().nullable(),
   AssignedResourceId: z.string().nullable(),
-  ScheduledStartUtc: z.string(),
-  ScheduledEndUtc: z.string(),
-  Id: z.string(),
-  ServiceId: z.string(),
+  StartUtc: z.string().nullable(),
+  EndUtc: z.string().nullable(),
+  Id: z.string().nullable(),
   BookerId: z.string().nullable(),
   TravelAgencyId: z.string().nullable(),
   State: z.string(),
-  Origin: z.string(),
-  CreatedUtc: z.string(),
-  UpdatedUtc: z.string(),
+  Origin: z.string().nullable(),
+  CreatedUtc: z.string().nullable(),
+  UpdatedUtc: z.string().nullable(),
   CancelledUtc: z.string().nullable(),
   LinkedReservationId: z.string().nullable(),
-  AccountId: z.string(),
-  AccountType: z.string(),
+  AccountId: z.string().nullable(),
+  AccountType: z.string().nullable(),
   PersonCounts: z.array(
     z.object({
       AgeCategoryId: z.string(),
@@ -52,16 +51,16 @@ const reservationFromApi = z.object({
 });
 
 const ratesFromApi = z.object({
-  Id: z.string(),
-  GroupId: z.string(),
-  ServiceId: z.string(),
+  Id: z.string().nullable(),
+  GroupId: z.string().nullable(),
+  ServiceId: z.string().nullable(),
   BaseRateId: z.string().nullable(),
   BusinessSegmentId: z.string().nullable(),
   IsActive: z.boolean(),
   IsEnabled: z.boolean(),
   IsPublic: z.boolean(),
-  Type: z.string(),
-  Name: z.string(),
+  Type: z.string().nullable(),
+  Name: z.string().nullable(),
   ShortName: z.string().nullable(),
   UpdatedUtc: z.string().nullable(),
   ExternalIdentifier: z.string().nullable(),
@@ -88,27 +87,28 @@ const restrictionsFromApi = z.object({
 });
 
 const servicesFromApi = z.object({
-  Id: z.string(),
+  Id: z.string().nullish(),
   EnterpriseId: z.string(),
   IsActive: z.boolean(),
-  Name: z.string(),
+  Name: z.string().nullable(),
   StartTime: z.string().nullable(),
   EndTime: z.string().nullable(),
   Type: z.string(),
   Ordering: z.number(),
-  CreatedUtc: z.string(),
-  UpdatedUtc: z.string(),
+  CreatedUtc: z.string().nullable(),
+  UpdatedUtc: z.string().nullable(),
 });
 
 const roomTypesFromApi = z.object({
-  Id: z.string(),
-  EnterpriseId: z.string(),
-  ServiceId: z.string(),
+  Id: z.string().nullable(),
+  EnterpriseId: z.string().nullable(),
+  ServiceId: z.string().nullable(),
   IsActive: z.boolean(),
-  Type: z.string(),
+  Type: z.string().nullable(),
   Classification: z.string().nullable(),
-  Names: z.record(z.string()),
-  ShortNames: z.record(z.string()),
+  Names: z.record(z.string().nullable()),
+  ShortNames: z.record(z.string().nullable()),
+  // Descriptions: {},
   Ordering: z.number(),
   Capacity: z.number(),
   ExtraCapacity: z.number(),
@@ -126,10 +126,10 @@ export const contract = c.router({
       Limitation: z
         .object({
           Cursor: z.string().optional(),
-          Count: z.number().default(100),
+          Count: z.number().default(1000),
         })
         .default({
-          Count: 100,
+          Count: 1000,
         }),
     }),
     responses: {
@@ -148,8 +148,8 @@ export const contract = c.router({
       Client: z.string().default(env.clientName),
       EnterpriseIds: z.array(z.string()).optional(),
       ReservationIds: z.array(z.string()).optional(),
-      StartUtc: z.string(),
-      EndUtc: z.string(),
+      StartUtc: z.string().optional(),
+      EndUtc: z.string().optional(),
       UpdatedUtc: z
         .object({
           StartUtc: z.string(),
@@ -159,10 +159,10 @@ export const contract = c.router({
       Limitation: z
         .object({
           Cursor: z.string().optional(),
-          Count: z.number().default(100),
+          Count: z.number().default(1000),
         })
         .default({
-          Count: 100,
+          Count: 1000,
         }),
     }),
     responses: {
@@ -229,14 +229,14 @@ export const contract = c.router({
           StartUtc: z.string(),
           EndUtc: z.string(),
           Value: z.number(),
-        }),
+        })
       ),
     }),
     responses: {
       200: z.object({}),
     },
   },
-
+  
   getCustomerDetails: {
     method: "POST",
     path: "/customers/getAll",
@@ -298,10 +298,10 @@ export const contract = c.router({
       200: z.object({
         AgeCategories: z.array(
           z.object({
-            Id: z.string(),
+            Id: z.string().nullable(),
             MinimalAge: z.number().nullable(),
             MaximalAge: z.number().nullable(),
-          }),
+          })
         ),
         Cursor: z.string().nullable(),
       }),

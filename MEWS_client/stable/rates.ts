@@ -1,4 +1,4 @@
-import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
+import type { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 export type ratePrice_format = ClientInferResponseBody<
   typeof contract.getRatePrice,
@@ -16,9 +16,9 @@ export type rate_format = ClientInferResponseBody<
 
 export type rate_body = ClientInferRequest<typeof contract.getAllRates>["body"];
 
-export async function getAllRates(body: rate_body, cursor: string | null) {
-  var ratesArr: rate_format = [];
-  async function fetchRates(body: rate_body, cursor: string | null) {
+export async function getAllRates(body: rate_body, cursor?: string) {
+  const ratesArr: rate_format = [];
+  async function fetchRates(body: rate_body, cursor: string) {
     if (ratesArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -30,21 +30,21 @@ export async function getAllRates(body: rate_body, cursor: string | null) {
       });
       if (resp.status == 200) {
         ratesArr.push(...resp.body["Rates"]);
-        await fetchRates(body, resp.body["Cursor"]);
+        await fetchRates(body, resp.body["Cursor"] as string);
       } else {
         throw new Error("Unexpected response format");
       }
     }
   }
-  await fetchRates(body, cursor);
+  await fetchRates(body, cursor as string);
   return ratesArr;
 }
 
 export async function getRatePrice(
   rateID: string,
   startDate: string,
-  endDate: string
-): Promise<ratePrice_format> {
+  endDate: string,
+) {
   const resp = await client.getRatePrice({
     body: contract.getRatePrice.body.parse({
       RateId: rateID,
@@ -52,11 +52,7 @@ export async function getRatePrice(
       EndUtc: endDate,
     }),
   });
-  if (resp.status == 200) {
-    return resp.body;
-  } else {
-    throw new Error("Unexpected response format");
-  }
+  return resp.body as ratePrice_format;
 }
 
 export async function updateRates(body: updatRate_body) {

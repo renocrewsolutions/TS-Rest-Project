@@ -1,4 +1,4 @@
-import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
+import type { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 
 export type ageCategory_format = ClientInferResponseBody<
@@ -12,10 +12,10 @@ export type ageCategory_body = ClientInferRequest<
 
 export async function fetchAgeCategories(
   body: ageCategory_body,
-  cursor: string | null
+  cursor?: string,
 ) {
-  var ageCategoryArr: ageCategory_format = [];
-  async function fetch(body: ageCategory_body, cursor: string | null) {
+  const ageCategoryArr: ageCategory_format = [];
+  async function fetch(body: ageCategory_body, cursor: string) {
     if (ageCategoryArr.length === 0 || cursor) {
       if (cursor) {
         body["Limitation"] = {
@@ -27,12 +27,12 @@ export async function fetchAgeCategories(
       });
       if (resp.status == 200) {
         ageCategoryArr.push(...resp.body["AgeCategories"]);
-        await fetch(body, resp.body["Cursor"]);
+        await fetch(body, resp.body["Cursor"] as string);
       } else {
         throw new Error("Unexpected response format");
       }
     }
   }
-  await fetch(body, cursor);
+  await fetch(body, cursor as string);
   return ageCategoryArr;
 }

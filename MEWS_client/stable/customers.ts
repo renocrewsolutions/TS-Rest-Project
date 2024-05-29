@@ -1,4 +1,4 @@
-import { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
+import type { ClientInferRequest, ClientInferResponseBody } from "@ts-rest/core";
 import { contract, client } from "./api";
 
 export type customer_format = ClientInferResponseBody<
